@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import tempfile
 from read_rfid import ROOT, tool, layout
 
 
@@ -18,11 +19,29 @@ def main():
     cli=tool('programmer/*/bin/STM32_Programmer_CLI')
     base=[cli,'-c','port=SWD','freq=4000','mode=NORMAL','reset=SWrst']
     def run(args, name):
-        p=subprocess.run(base+args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)
-        log=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]','',p.stdout)
-        (out/name).write_text(log)
-        if p.returncode or 'Error:' in log: raise RuntimeError(log[-2000:])
-        return log
+        # Some Programmer builds truncate output around non-ASCII filenames.
+        # Transfer through ASCII temporary paths; keep the permanent local records.
+        with tempfile.TemporaryDirectory(prefix='iot-rfid-flash-') as td:
+            command=list(args)
+            destination=None
+            if '-u' in command:
+                destination=Path(command[-1])
+                command[-1]=str(Path(td)/'memory.bin')
+            if '-w' in command:
+                i=command.index('-w')+1
+                source=Path(command[i])
+                temporary=Path(td)/'firmware.elf'
+                shutil.copy2(source,temporary)
+                command[i]=str(temporary)
+            p=subprocess.run(base+command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)
+            log=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]','',p.stdout)
+            (out/name).write_text(log)
+            if p.returncode or 'Error:' in log: raise RuntimeError(log[-2000:])
+            if destination is not None:
+                temporary=Path(command[-1])
+                if not temporary.exists(): raise RuntimeError('Programmer未生成回读文件')
+                shutil.copy2(temporary,destination)
+            return log
     backup=out/'写入前主控Flash64KB.bin'
     run(['-u','0x08000000','0x10000',str(backup)],'01_备份.log')
     if not backup.exists() or backup.stat().st_size!=65536:

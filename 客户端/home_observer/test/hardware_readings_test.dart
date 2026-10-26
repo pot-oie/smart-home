@@ -71,4 +71,20 @@ void main() {
     expect(parsed.samples, isEmpty);
     expect(parsed.error, 'ST-LINK不可用');
   });
+  test('accepts real USB serial RFID and rejects malformed UID', () {
+    final j = frame();
+    j['transport'] = 'USB-TTL';
+    j['rfid'] = <String, dynamic>{
+      'status': 2,
+      'uid': 'A1B2C3D4',
+      'eventSeq': 3,
+      'cardReads': 111,
+      'ageSeconds': 0.2,
+    };
+    final parsed = HardwareFrame.parse(jsonEncode(j));
+    expect(parsed.transport, 'USB-TTL');
+    expect(parsed.rfid!.uid, 'A1B2C3D4');
+    (j['rfid'] as Map<String, dynamic>)['uid'] = 'bad';
+    expect(() => HardwareFrame.parse(jsonEncode(j)), throwsFormatException);
+  });
 }

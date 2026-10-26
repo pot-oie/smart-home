@@ -72,24 +72,45 @@ def main():
     with tempfile.TemporaryDirectory(prefix='iot-rfid-') as td:
         path=Path(td)/'ram.bin'
         while args.count==0 or i<args.count:
-            path.unlink(missing_ok=True)
-            proc=subprocess.run([tool('programmer/*/bin/STM32_Programmer_CLI'),'-c','port=SWD',
-                                 'freq=4000','mode=HOTPLUG','-u',hex(begin),str(end-begin),str(path)],
-                                stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=15)
-            log=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]','',proc.stdout)
-            if proc.returncode or 'Error:' in log or not path.exists():
-                raise RuntimeError('ST-LINK读取失败：关闭其他调试/转发工具。\n'+log[-1500:])
-            data=path.read_bytes()
-            if len(data)!=end-begin: raise RuntimeError('RAM长度错误')
-            row=decode(data,syms,begin)
-            polls=row['rfid']['polls']
-            if last_polls is not None and polls!=last_polls: changed_at=time.monotonic()
-            last_polls=polls
-            row['samplingConfirmed']=changed_at is not None and time.monotonic()-changed_at<6
-            print(json.dumps(row,ensure_ascii=False),flush=True)
-            if args.output:
-                args.output.parent.mkdir(parents=True,exist_ok=True)
-                with args.output.open('a') as f: f.write(json.dumps(row,ensure_ascii=False)+'\n')
+            try:
+                path.unlink(missing_ok=True)
+                proc=subprocess.run([tool('programmer/*/bin/STM32_Programmer_CLI'),'-c','port=SWD',
+                                     'freq=4000','mode=HOTPLUG','-u',hex(begin),str(end-begin),str(path)],
+                                    stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=15)
+                log=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]','',proc.stdout)
+                if proc.returncode or 'Error:' in log or not path.exists():
+                    raise RuntimeError('ST-LINK读取失败：关闭其他调试/转发工具。\n'+log[-1500:])
+                data=path.read_bytes()
+                if len(data)!=end-begin: raise RuntimeError('RAM长度错误')
+                row=decode(data,syms,begin)
+                polls=row['rfid']['polls']
+                if last_polls is not None and polls < last_polls:
+                    changed_at=None
+                elif last_polls is not None and polls != last_polls:
+                    changed_at=time.monotonic()
+                last_polls=polls
+                row['linkOnline']=True
+                row['samplingConfirmed']=changed_at is not None and time.monotonic()-changed_at<6
+                print(json.dumps(row,ensure_ascii=False),flush=True)
+                if args.output:
+                    args.output.parent.mkdir(parents=True,exist_ok=True)
+                    with args.output.open('a') as f: f.write(json.dumps(row,ensure_ascii=False)+'\n')
+            except (RuntimeError, subprocess.SubprocessError, OSError) as error:
+                if args.count != 0:
+                    raise
+                # Keep the monitor alive across USB re-enumeration. A failed
+                # transfer emits an offline record, never an old sensor sample.
+                offline={'hostTime':datetime.now(timezone.utc).isoformat(),
+                         'linkOnline':False, 'samplingConfirmed':False,
+                         'error':str(error)[-1800:]}
+                print(json.dumps(offline,ensure_ascii=False),flush=True)
+                if args.output:
+                    args.output.parent.mkdir(parents=True,exist_ok=True)
+                    with args.output.open('a') as f:
+                        f.write(json.dumps(offline,ensure_ascii=False)+'\n')
+                last_polls=None; changed_at=None
+                time.sleep(3)
+                continue
             i+=1
             if args.count==0 or i<args.count: time.sleep(max(.5,args.interval))
 

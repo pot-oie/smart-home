@@ -24,6 +24,7 @@
 #include "board_dht12.h"
 #include "board_bh1750.h"
 #include "board_rc522.h"
+#include "board_uart_upload.h"
 
 /* USER CODE END Includes */
 
@@ -93,6 +94,7 @@ int main(void)
   BoardDht_Init();
   BoardLight_Init();
   BoardRfid_Init();
+  BoardUpload_Init();
 
   /* USER CODE END 2 */
 
@@ -106,6 +108,7 @@ int main(void)
     BoardDht_Poll();
     BoardLight_Poll();
     BoardRfid_Poll();
+    BoardUpload_Poll();
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     HAL_Delay(500);
   }

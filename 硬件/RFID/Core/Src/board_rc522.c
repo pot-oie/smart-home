@@ -74,7 +74,11 @@ static void configure(void) {
     if (g_rfid.version==0U || g_rfid.version==0xffU || rd(0x2b)!=0x3eU) {
         g_rfid.status=3; initialized=false; return;
     }
-    if (g_rfid.version!=0x91U && g_rfid.version!=0x92U && g_rfid.version!=0x88U) {
+    /* 0x82 is observed on this board. Its exact IC identity is unknown;
+     * allow UID trials only after the register round-trip check above.
+     * RF response/BCC/CRC checks below still determine actual card support. */
+    if (g_rfid.version!=0x91U && g_rfid.version!=0x92U &&
+        g_rfid.version!=0x88U && g_rfid.version!=0x82U) {
         g_rfid.status=6; initialized=false; return;
     }
     initialized=true; g_rfid.status=1;

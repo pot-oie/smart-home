@@ -75,3 +75,5 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_soft_i2c.c)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_bh1750.c)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_rc522.c)
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_uart_upload.c)

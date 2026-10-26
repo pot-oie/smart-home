@@ -62,7 +62,7 @@ class _HardwarePageState extends State<HardwarePage> {
         _error = next.error;
       });
     } catch (_) {
-      if (mounted) setState(() => _error = '连接中断，请检查 Mac 转发服务和 ST-LINK');
+      if (mounted) setState(() => _error = '连接中断，请检查 Mac 接收服务和数据连接');
     } finally {
       _busy = false;
     }
@@ -121,6 +121,50 @@ class _HardwarePageState extends State<HardwarePage> {
     );
   }
 
+  Widget _rfid() {
+    final r = _frame!.rfid!;
+    final elapsed = _receivedTick == null
+        ? 99.0
+        : (_clock.elapsed - _receivedTick!).inMilliseconds / 1000;
+    final fresh =
+        _live && (r.age ?? 99) + (_frame?.bridgeAge ?? 99) + elapsed <= 6;
+    final label = !fresh
+        ? '等待更新'
+        : switch (r.status) {
+            1 => '等待刷卡',
+            2 => '卡号已读取',
+            0 => '初始化',
+            _ => '读卡异常',
+          };
+    final uid = r.uid;
+    final formatted = uid == null
+        ? '—'
+        : RegExp(r'.{2}').allMatches(uid).map((m) => m.group(0)).join(' ');
+    return CreamCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('RFID 读卡', style: Warm.title(21))),
+              WarmBadge(label, color: fresh ? Warm.blue : Warm.clay),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text('最近读到的卡号', style: TextStyle(color: Warm.muted)),
+          const SizedBox(height: 6),
+          Text(fresh ? formatted : '—', style: Warm.title(25)),
+          const SizedBox(height: 10),
+          Text(
+            '刷卡事件 ${r.eventSeq} · 成功读取 ${r.cardReads} 次',
+            style: const TextStyle(color: Warm.muted),
+          ),
+          const Text('当前验证卡号上传，授权判断尚未接入。', style: TextStyle(color: Warm.muted)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
@@ -131,6 +175,10 @@ class _HardwarePageState extends State<HardwarePage> {
           Row(
             children: [
               const WarmBadge('真实硬件', color: Warm.clay),
+              if (_frame?.transport == 'USB-TTL') ...[
+                const SizedBox(width: 8),
+                const WarmBadge('USB 串口', color: Warm.blue),
+              ],
               const SizedBox(width: 8),
               WarmBadge(_live ? '数据更新中' : '等待连接', color: Warm.blue),
             ],
@@ -140,6 +188,7 @@ class _HardwarePageState extends State<HardwarePage> {
             CreamCard(
               child: Text(_error!, style: const TextStyle(color: Warm.clay)),
             ),
+          if (_frame?.rfid != null) _rfid(),
           _sensor(1, '温度', '°C', 'H02 · DHT12'),
           _sensor(2, '湿度', '%RH', 'H02 · DHT12'),
           _sensor(3, '光照', 'lx', 'H03 · BH1750'),
@@ -153,7 +202,7 @@ class _HardwarePageState extends State<HardwarePage> {
             child: Text(_recent.isEmpty ? '等待实测记录' : _recent.join('\n')),
           ),
           const Text(
-            '本阶段仅查看温湿度与光照。其他模块和远程控制尚未接入。',
+            '支持温湿度、光照与 RFID 卡号上传。未连接的传感器暂无读数；远程控制尚未接入。',
             style: TextStyle(color: Warm.muted),
           ),
         ],

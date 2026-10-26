@@ -15,6 +15,41 @@ class HardwareReading {
   final String status;
 }
 
+class HardwareRfid {
+  HardwareRfid(this.status, this.uid, this.eventSeq, this.cardReads, this.age);
+  final int status, eventSeq, cardReads;
+  final String? uid;
+  final double? age;
+  factory HardwareRfid.parse(Map<String, dynamic> j) {
+    final status = j['status'], seq = j['eventSeq'], count = j['cardReads'];
+    final uid = j['uid'];
+    final age = j['ageSeconds'];
+    if (status is! int ||
+        status < 0 ||
+        status > 6 ||
+        seq is! int ||
+        seq < 0 ||
+        count is! int ||
+        count < 0 ||
+        (uid != null &&
+            (uid is! String ||
+                !RegExp(
+                  r'^(?:[0-9A-F]{8}|[0-9A-F]{14}|[0-9A-F]{20})$',
+                ).hasMatch(uid))) ||
+        (age != null && (age is! num || !age.isFinite || age < 0)) ||
+        (status == 2 && uid == null)) {
+      throw const FormatException('RFID数据无效');
+    }
+    return HardwareRfid(
+      status,
+      uid as String?,
+      seq,
+      count,
+      (age as num?)?.toDouble(),
+    );
+  }
+}
+
 class HardwareFrame {
   HardwareFrame(
     this.session,
@@ -22,14 +57,18 @@ class HardwareFrame {
     this.readAt,
     this.samples,
     this.error,
-    this.bridgeAge,
-  );
+    this.bridgeAge, {
+    this.rfid,
+    this.transport = 'SWD',
+  });
   final String session;
   final int seq;
   final DateTime? readAt;
   final List<HardwareReading> samples;
   final String? error;
   final double? bridgeAge;
+  final HardwareRfid? rfid;
+  final String transport;
   factory HardwareFrame.parse(String text) {
     final j = jsonDecode(text) as Map<String, dynamic>;
     if (j['version'] != 1 ||
@@ -83,6 +122,10 @@ class HardwareFrame {
       samples,
       j['error'] as String?,
       bridgeAge,
+      rfid: j['rfid'] == null
+          ? null
+          : HardwareRfid.parse(Map<String, dynamic>.from(j['rfid'])),
+      transport: j['transport'] == 'USB-TTL' ? 'USB-TTL' : 'SWD',
     );
   }
 }
