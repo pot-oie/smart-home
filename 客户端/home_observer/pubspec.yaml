@@ -1,0 +1,23 @@
+name: home_observer
+description: 智能家居监测客户端，温暖家居视觉与明确标识的模拟设备。
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  path_provider: 2.1.5
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+  fonts:
+    - family: HomeSerif
+      fonts:
+        - asset: assets/fonts/NotoSerifSC.ttf

@@ -1,0 +1,10 @@
+{
+  "folders": [
+    {"name": "Flutter 客户端", "path": "客户端/home_observer"},
+    {"name": "温湿度与光照固件", "path": "硬件/温湿度与光照"},
+    {"name": "RFID 固件", "path": "硬件/RFID"}
+  ],
+  "extensions": {
+    "recommendations": ["Dart-Code.flutter", "stmicroelectronics.stm32-vscode-extension"]
+  }
+}

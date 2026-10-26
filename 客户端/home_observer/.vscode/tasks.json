@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flutter：静态检查",
+      "type": "process",
+      "command": "flutter",
+      "args": [
+        "analyze",
+        "--no-pub"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter：运行已有测试",
+      "type": "process",
+      "command": "flutter",
+      "args": [
+        "test",
+        "--no-pub"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
