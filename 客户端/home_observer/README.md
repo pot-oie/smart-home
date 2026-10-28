@@ -14,7 +14,7 @@ flutter run -d emulator-5554 -t lib/main.dart
 
 用自己的 Android 设备 ID 替换 emulator-5554。VS Code 打开本目录，选安卓设备并按 F5 即可调试。不要先复制其他电脑的缓存或 local.properties。
 
-`lib/main_hardware.dart` 仅显示温度、湿度、光照，依赖 Mac/ST-LINK 网关及同版本固件 ELF；无线直连尚未实现。
+`lib/main_hardware.dart` 为独立实物页面，显示温湿度、光照及RFID读数。当前优先使用USB转TTL串口网关，不依赖ST工具或ELF；早期SWD读数路径仍保留。完整四页App尚未接入真实DeviceAdapter，无线直连尚未实现。详见[开发交接文档](../../HANDOFF.md)。
 
 ## 使用入口
 

@@ -77,3 +77,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_bh1750.c)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_rc522.c)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_uart_upload.c)
+
+# Relay output remains disabled until actual trigger polarity is confirmed.
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/board_relay.c Core/Src/relay_pulse.c)
+
+set(BOARD_RELAY_MODE "0" CACHE STRING "Relay mode: 0 off, 1 high, 2 low, 3 GPIO probe")
+if(NOT BOARD_RELAY_MODE MATCHES "^[0-3]$")
+    message(FATAL_ERROR "Invalid BOARD_RELAY_MODE")
+endif()
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE BOARD_RELAY_MODE=${BOARD_RELAY_MODE})
